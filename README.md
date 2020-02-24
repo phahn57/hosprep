@@ -1,5 +1,4 @@
-# Readme
-###HospRep
+# HospRep
 HospRep is an application for a monthly overview over the achievments of the complete hospital (Vulpius Klinik) and the their different departments. Beginning in 2017 the shiny app replaced the outdated Excel-based sheets.
 
 ### Prerequisites for using RadaR
