@@ -9,7 +9,7 @@ I built HospRep in R, an open source programming language using the Shiny packag
 We store the required data in two lists, y_prev and y_akt, each list containing the data for a specific period, y_prev (2018-2019), y_akt (2019-2020). The data are an export of our hospital EHR (electronic health records). Pre-processing with R removes patients identification and build tables and data summaries to enhance the performance of the shiny app. 
 
 ### Shinyapps.io and github
-The application is published on shinyapps.io: https://kphahn.shinyapps.io/hosprep/. Github repo:
+The application is published on shinyapps.io: https://kphahn.shinyapps.io/hosprep/. Github repo: https://github.com/phahn57/hosprep
 
 ### Privacy
 HospRep works with sensitive patients data. During pre-processing, all patient identification are removed. For the running example, the original data are modified and do not reflect the real hospital. Names of referring doctors and the names of the intern doctors are anonymized.
