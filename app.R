@@ -15,6 +15,8 @@ library(leaflet)
 library(sf)
 library(geojsonio)
 library(geojsonsf)
+library(directlabels)
+library(shinyalert)
 
 
 ## function in extra source
@@ -42,9 +44,8 @@ bins =  c(1,2,4,8,16,32,64,128,256)
 
 # Define UI ----
 ui <- dashboardPage(
-
 # App title ----
-        dashboardHeader(title= paste("Reporting: 2020/2019")),
+        dashboardHeader(title= paste("HospRep: 2020/2019")),
         dashboardSidebar(
                 sidebarMenu(
                         menuItem("Departement", tabName = "report", icon = icon("dashboard")),
@@ -56,13 +57,14 @@ ui <- dashboardPage(
                         menuItem("Duration",tabName="snzeit",icon=icon("hand-scissors-o")),
                         menuItem("Preparations",tabName="vorb",icon=icon("hourglass")),
                         menuItem("map",tabName = "kart",icon=icon("map-o")),
-                        radioButtons("yearset", "Choose year",
-                                     c( "actual" = "akt", "previous" = "prev")
+                        radioButtons("yearset", "Choose period",
+                                     c( "actual 20/19" = "akt", "previous 19/18" = "prev")
                         )
                 )
         ),
 
         dashboardBody(
+                useShinyalert(),
                 tabItems(
                         tabItem(tabName="report",
                 fluidRow(
@@ -78,8 +80,8 @@ ui <- dashboardPage(
                         box(width=NULL,plotOutput("amb"))
                         ),
                         column(width=4,
-                        box(title="Stationär",width=NULL,tableOutput("tab")),
-                        box(title="AOP",width=NULL,tableOutput("taop"))
+                        box(title="inpatient",width=NULL,tableOutput("tab")),
+                        box(title="outpat-surg",width=NULL,tableOutput("taop"))
                                 )),
                 fluidRow(
                         column(width=8,
@@ -89,7 +91,7 @@ ui <- dashboardPage(
                                     choices = c("ORTH", "H_CHI", "S_CHI","F_CHI","WS","Kinder","K_CHI"),inline=TRUE)
                         )),
                         column(width=4,
-                               box(title="Ambulant",width=NULL,tableOutput("tamb")))
+                               box(title="ambulatory",width=NULL,tableOutput("tamb")))
 
                 )),
 
@@ -106,7 +108,7 @@ ui <- dashboardPage(
                                     box(title="Rank", width=NULL,
                                     sliderInput("rg","Rang",min=1,max=70,value=c(1,35),dragRange = FALSE)))),
                                 column(width=4,
-                                       box(title="Explanation",width=NULL,
+                                       box(title="Description",width=NULL,
                                            h4("Referring doctors are sorted by ascending mean of the last 12 month")))
                 )),
 
@@ -123,14 +125,15 @@ ui <- dashboardPage(
                                            box(title="Rank", width=NULL,
                                                sliderInput("rg1","Rang",min=1,max=70,value=c(1,35),dragRange = FALSE)))),
                                 column(width=4,
-                                       box(title="Explanation",width=NULL,
+                                       box(title="Description",width=NULL,
                                            h4("Referred patients resulting in hospital treatment or outpatient surgery.",
                                                 tags$br(),
                                                 "Referring doctors are sorted by ascending mean of the last 12 month")))
                                            )),
 
                 ### Tab für Klinik
-                tabItem(tabName="Hospital",
+                tabItem(tabName="klinik",
+                        h4("Hospital/previous year (points)"),
                         fluidRow(
                                 box(width=3,plotOutput("kfall")),
                                 box(width=3,plotOutput("keff")),
@@ -139,7 +142,7 @@ ui <- dashboardPage(
                         fluidRow(
                                 box(width = 3,plotOutput("kaop")),
                                 box(width = 3,plotOutput("kamb")),
-                                box(title=" stat.Leistung", width = 6,tableOutput("koff")))),
+                                box(title="inpatient performance", width = 6,tableOutput("koff")))),
                 tabItem(tabName = "end_o",
                         h4("Knee and hip endoprotheses"),
                         fluidRow(
@@ -183,7 +186,7 @@ ui <- dashboardPage(
                                                  label = "Department:",
                                                  choices = c("ORTH", "H_CHI", "S_CHI","F_CHI","Kinder","K_CHI"),inline=TRUE))),
                               column(width=4,
-                              box(title="Explanation",width=NULL,
+                              box(title= "Description",width=NULL,
                                    h4("Time difference from OP- preparation until cut")))
                 )),
 
@@ -205,6 +208,18 @@ ui <- dashboardPage(
 
 # Define server logic  ----
 server <- function(input, output) {
+
+        shinyalert("HospRep",
+        "the hospital reporting app was build to
+        give doctors and administration of the Vulpius Klinik
+        an overview over the monthly performance of the hospital.
+
+        This application contains synthetic data
+
+        Original written in German, the main menues are rewritten
+        in English.",
+        type = "info")
+
         ## Wechsel zwischen den Jahren
         y_data <- reactive({
                 if (input$yearset == "akt")
@@ -276,12 +291,17 @@ server <- function(input, output) {
         })
 
         output$aop <- renderPlot({
+                nr <- nrow(df_aop())
+                shiny::validate(
+                shiny::need(nr!=0, message = "no outpatient operations")
+                )
                 plotter_abt(df_aop(),mon,faelle,"outpatient operations")
+
         })
 
 
         output$amb <- renderPlot({
-                plotter_abt(df_amb(),mon,faelle,"Ambulant Patients")
+                plotter_abt(df_amb(),mon,faelle,"ambulatory patients")
         })
 
 
@@ -294,6 +314,10 @@ server <- function(input, output) {
         })
 
         output$taop <- renderTable({
+                nr <- nrow(df_aop())
+                shiny::validate(
+                        shiny::need(nr!=0, message = "no outpatient operations")
+                )
                 x <- df_aop() %>% filter(mon <= y_data()$bmon) %>% group_by(jahr) %>% summarise(faelle = sum(faelle), S_Naht = sum(sn))
                 if(length(unique(x$jahr))==1){
                         var=unique(x$jahr)
@@ -330,11 +354,11 @@ server <- function(input, output) {
         })
 
         output$kaop <- renderPlot({
-                y_data()$df.klinik %>% filter(form=="ambulantes operieren") %>% plotter(abt,faelle,"Department","AOP",y_data()$akt,y_data()$vor)
+                y_data()$df.klinik %>% filter(form=="ambulantes operieren") %>% plotter(abt,faelle,"Department","outpat_surg",y_data()$akt,y_data()$vor)
         })
 
         output$kamb <- renderPlot({
-                y_data()$df.klinik %>% filter(form=="ambulant") %>% plotter(abt,faelle,"Department","Ambulant Pat",y_data()$akt,y_data()$vor)
+                y_data()$df.klinik %>% filter(form=="ambulant") %>% plotter(abt,faelle,"Department","ambulatory pat",y_data()$akt,y_data()$vor)
         })
 
         output$koff <- renderTable(y_data()$off,spacing = "xs",striped = TRUE, width="200")
@@ -380,7 +404,7 @@ server <- function(input, output) {
 ### Tab Operateur
         output$chir_name <- renderTable({
                 y_data()$fall %>% filter(jahr == y_data()$akt_jahr & op == "J") %>% filter(abt == input$inVar2) %>% group_by(arzt1) %>%
-                        summarise(Anzahl = n(), Schnitt_Naht = sum(snzeit, na.rm = TRUE))
+                        summarise(number = n(), cut_suture = sum(snzeit, na.rm = TRUE))
         })
 
         output$operat <- renderPlot({

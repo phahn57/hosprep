@@ -34,11 +34,13 @@ ermaech <- function(df, kvvar) {
 plotter_abt <- function(dd,xname, yname, ybez) {
         x_var <- enquo(xname)
         y_var <- enquo(yname)
-        ggplot(dd, aes(x = !!x_var, y = !!y_var, group=jahr, colour=jahr))+
-                geom_point() + geom_line() + theme_bw() +
+        ggplot(dd, aes(x = !!x_var, y = !!y_var, group=jahr, color=jahr)) + geom_point()+
+                geom_line(aes(color = jahr)) + theme_bw() +
                 guides(colour = FALSE, alpha = FALSE, size = FALSE) +
-                ggtitle(ybez, "prev.year (black)") + labs(x = "month", y = ybez) +
-                scale_x_continuous(breaks = brk) + scale_y_continuous(limits = c(0, NA))
+                ggtitle (ybez) + labs(x = "month", y = ybez) +
+                scale_x_continuous(breaks = brk) + scale_y_continuous(limits = c(0, NA))+
+                geom_dl(aes(label=jahr), method=list("last.points",hjust= .5, vjust= 1))
+
 }
 
 
@@ -47,10 +49,10 @@ plotter <- function(df,xname, yname, xax, yax,akt,vor) {
         x_var <- enquo(xname)
         y_var <- enquo(yname)
         ggplot(df, aes(x = !!x_var, y = !!y_var)) +
-                geom_col(data = df[df$jahr == akt, ], alpha = 0.3) +
-                geom_point(data = df[df$jahr == vor, ], color = "blue") +
+                geom_col(data = df[df$jahr == akt, ], alpha = 0.3, color= "blue") +
+                geom_point(data = df[df$jahr == vor, ], color = "black") +
                 theme_bw() + guides(colour = FALSE, alpha = FALSE, size = FALSE) +
-                ggtitle(yax, "prev.year (blue)") + labs(x = xax, y = yax)
+                ggtitle(yax) + labs(x = xax, y = yax)
 }
 
 
@@ -63,10 +65,11 @@ plotter_ops <- function(df,dep,ops,bm){
         xp <- x %>% filter(mon <= bm) %>% group_by(jahr) %>% summarise(ops_n = n()) ## %>% dcast(htep_prim~jahr)
 
         ggplot(x, aes(mon, n, group=jahr, colour=jahr))+
-                geom_point() + geom_line() + theme_bw() +
+                geom_point() + geom_line(aes(color = jahr)) + theme_bw() +
                 guides(colour = FALSE, alpha = FALSE, size = FALSE) +
-                ggtitle(ops, "prev.year (black)") + labs(x = "month", y = ops) +
-                scale_x_continuous(breaks = brk) + scale_y_continuous(limits = c(0, NA))
+                ggtitle(ops) + labs(x = "month", y = ops) +
+                scale_x_continuous(breaks = brk) + scale_y_continuous(limits = c(0, NA))+
+                geom_dl(aes(label=jahr), method=list("last.points",hjust= .5, vjust= 1))
 }
 
 ### plot DB3
